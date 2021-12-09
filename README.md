@@ -48,7 +48,8 @@ step 1: Identify circRNA from IP/Input:
 step 2: Identify IP-enriched circRNA:
 
 	usage: python circRIP.py EnrichedcircRNA -h
-		optional arguments:
+	
+	optional arguments:
       -h, --help            show this help message and exit
       -ip_circ IP_CIRC      circRNA count in IP
       -input_circ INPUT_CIRC
