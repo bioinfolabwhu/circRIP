@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <script  src="https://www.layuicdn.com/layui/layui.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="https://www.layuicdn.com/layui/css/layui.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.2/dist/echarts.min.js"></script>
+</head>
+<body>
+
+<div class="layui-container">
+    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">
+        <legend> circRIPtool results </legend>
+    </fieldset>
+    <table class="layui-hide" id="resultTable" lay-filter="resultTable1"></table>
+</div>
+
+
+<div class="layui-container">
+    <div class="layui-row">
+        <div class="layui-col-md6" >
+            <fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">
+                <legend> bubble plot </legend>
+            </fieldset>
+            <div id='test' style="width: 600px;height:400px"></div>
+        </div>
+        <div class="layui-col-md6">
+            <fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">
+                <legend> enrichment state in IP </legend>
+            </fieldset>
+            <div id='test2' style="width: 600px;height:400px"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+
+
+<script>
+    var data = {{placeholder}};
+
+    var data1 = [];
+    var data2 = [];
+    var dataTable=[];
+    var ratio = [];
+    for (var i = 1; i < data.length; i++){
+        ratio.push(data[i][6])
+        if (data[i][8]=='enriched'){
+
+            if (data[i][2]>0){
+                data2.push([data[i][0], data[i][2], 2])
+            }
+            data1.push([data[i][0], data[i][4], data[i][5],2,data[i][6],data[i][7]])
+            dataTable.push(
+                {
+                    'circRNA id':data[i][0],
+                    'Host gene':data[i][1],
+                    'circRNA count in IP':data[i][2],
+                    'circRNA count in Input':data[i][3],
+                    'circRNA CPM in IP':data[i][4],
+                    'circRNA CPM in Input':data[i][5],
+                    'Ratio':data[i][6],
+                    'P value':data[i][7],
+                    'Type':data[i][8]
+                }
+            )
+
+        } else {
+            if (data[i][2]>0){
+                data2.push([data[i][0], data[i][2], 1])
+            }
+            data1.push([data[i][0], data[i][4], data[i][5],1,data[i][6],data[i][7]])
+            dataTable.push(
+                {
+                    'circRNA id':data[i][0],
+                    'Host gene':data[i][1],
+                    'circRNA count in IP':data[i][2],
+                    'circRNA count in Input':data[i][3],
+                    'circRNA CPM in IP':data[i][4],
+                    'circRNA CPM in Input':data[i][5],
+                    'Ratio':data[i][6],
+                    'P value':data[i][7],
+                    'Type':data[i][8]
+                }
+            )
+        }
+    };
+
+
+    data2.sort(
+        function(a,b) {
+            return b[1] - a[1]
+        }
+    )
+    ratio.sort(
+        function(a,b) {
+            return a - b
+        }
+    )
+
+</script>
+
+<script>
+
+    layui.use('table', function(){
+        var table = layui.table;
+
+       
+        table.render({
+            elem: '#resultTable'
+            ,id:'demo'
+            ,cols: [[ 
+                {field: 'circRNA id', title: 'circRNA id', sort: true,width: 220}
+                ,{field: 'Host gene', title: 'Host gene'}
+                ,{field: 'circRNA count in IP', title: 'circRNA count in IP',sort: true}
+                ,{field: 'circRNA count in Input', title: 'circRNA count in Input',sort: true}
+                ,{field: 'circRNA CPM in IP', title: 'circRNA CPM in IP',sort: true}
+                ,{field: 'circRNA CPM in Input', title: 'circRNA CPM in Input',sort: true}
+                ,{field: 'Ratio', title: 'Ratio', sort: true}
+                ,{field: 'P value', title: 'P value', sort: true}
+                ,{field: 'Type', title: 'Type', sort: true}
+            ]]
+            ,data: dataTable
+            ,even: true
+            ,page: true 
+        });
+        table.on('sort(resultTable1)', function(obj){
+            console.log(layui.table)
+            table.reload('demo', {
+                initSort: obj 
+                ,where: { 
+                    field: obj.field
+                    ,order: obj.type
+                }
+            });
+            myFunction(layui.table.cache['demo'])
+
+        });
+
+    });
+
+</script>
+
+
+<script>
+
+    var chartDom = document.getElementById('test');
+    var myChart = echarts.init(chartDom);
+    var option = {
+        tooltip: {
+            trigger: 'item',
+            axisPointer: {
+                type: 'cross'
+            }
+        },
+        tooltip:{formatter: function (params) {
+                return  data1[Number(params.dataIndex)][0]
+            }
+        },
+        grid:{
+            left:"20%"
+        },
+        visualMap: {
+            min: 0,
+            max: 0.05,
+            calculable: true,
+            realtime: true,
+            precision:4,
+            align: "top",
+            top: "12%",
+            outOfRange: {
+                color: ["#313695"]
+            },
+            inRange: {
+                color: ["#a50026","#d73027", "#f46d43","#fdae61", "#fee090","#ffffbf","#e0f3f8", "#abd9e9","#74add1", "#4575b4", "#313695" ]
+            },
+            formatter:function (value) {
+                if (value>=0.05) {
+                    return '>=0.05';
+                } else {
+                    return '0'
+                }
+
+
+            },
+            dimension: 5
+        },
+        xAxis: [
+            {
+                type: 'value'
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value'
+            }
+        ],
+        series: [
+            {
+                name: 'price-area',
+                type: 'scatter',
+                symbolSize:  function(data) {
+                    if (data[4]<= 1) {
+                        return 1
+                    } else if (data[4]<= 2){
+                        return 15
+                    } else if (data[4]<= 5){
+                        return 20
+                    } else {
+                        return 25
+                    }
+                },
+                data: data1,
+                encode:{
+                    x:1,
+                    y:2
+                },
+            }
+        ]
+    };
+
+    myChart.setOption(option);
+
+
+
+
+</script>
+<script>
+    var chartDom2 = document.getElementById('test2');
+    var myChart2 = echarts.init(chartDom2);
+    var option2 =  {
+        xAxis: {
+            type: 'category',
+        },
+        yAxis: {
+            type: 'value'
+        },
+
+        tooltip:{formatter: function (params) {
+                    return  data2[Number(params.dataIndex)][0]
+                }
+            },
+        dataZoom: [
+            {
+                id: 'dataZoomX',
+                type: 'slider',
+                filterMode: 'filter',
+                top: '90%', height: 20
+
+            }],
+        visualMap: {
+            type: 'piecewise',
+            top: 10,
+            left:550,
+            left:"70%",
+            pieces: [{
+                value: 1,
+                label: 'non-enriched',
+                color: '#37A2DA'
+            }, {
+                value: 2,
+                label: 'enriched',
+                color: '#e06343'
+            }],
+            dimension:2
+        },
+        series: [
+            {
+                data: data2,
+                type: 'bar',
+                gridIndex:0
+            }
+        ]
+    };
+
+    myChart2.setOption(option2);
+
+
+
+</script>
+</html>
