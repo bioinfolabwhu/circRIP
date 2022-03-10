@@ -17,7 +17,7 @@ def circRNAIdentify(arg):
 
 def EnrichedcircRNA(arg):
     ctest.main(arg.ip_circ, arg.input_circ, arg.gtf, arg.ip_bam, \
-               arg.input_bam, arg.prefix,arg.G, arg.s, arg.p, arg.SE)
+               arg.input_bam, arg.prefix,arg.G, arg.s, arg.p, arg.SE, arg.L, arg.FC, arg.pvalue)
 
 def args():
     parser = argparse.ArgumentParser()
@@ -41,12 +41,15 @@ def args():
     EnrichedcircRNAParm.add_argument('-ip_circ',help='circRNA count in IP')
     EnrichedcircRNAParm.add_argument('-input_circ',help='circRNA count in Input')
     EnrichedcircRNAParm.add_argument('-gtf',help='gtf format gene annotation')
-    EnrichedcircRNAParm.add_argument('-ip_bam',help='BAM format files of IP',type=str)
-    EnrichedcircRNAParm.add_argument('-input_bam',type=str,help='BAM format files of Input')
+    EnrichedcircRNAParm.add_argument('-ip_bam',help='BAM files of IP',type=str)
+    EnrichedcircRNAParm.add_argument('-input_bam',type=str,help='BAM files of Input')
     EnrichedcircRNAParm.add_argument('-prefix',help='output prefix',type=str)
     EnrichedcircRNAParm.add_argument('-G',help='genome fasta')
     EnrichedcircRNAParm.add_argument('-s',help='strand specific: 0 (unstranded), 1 (stranded) and 2 (reversely stranded), default value is 0',default=0)
     EnrichedcircRNAParm.add_argument('-p',help='threads, default value is 1',action="store", type=int,default=1)
+    EnrichedcircRNAParm.add_argument('-pvalue', help='pvalue threshold', action="store", type=float, default=0.05)
+    EnrichedcircRNAParm.add_argument('-FC', help='IP/Input foldchange threshold', action="store", type=float, default=2)
+    EnrichedcircRNAParm.add_argument('-L', help='lambda threshold', action="store", type=float, default=1)
     EnrichedcircRNAParm.add_argument('-SE',action="store_true",required=False,help='Single end mode',default=False)
     EnrichedcircRNAParm.set_defaults(handle=EnrichedcircRNA)
 

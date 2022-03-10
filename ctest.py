@@ -1,12 +1,10 @@
-import os, sys, re
-import pandas as pd
-import numpy as np
-import argparse
+import os
+import re
+import sys
 import pysam
-import functools
+import numpy as np
+import pandas as pd
 import scipy.stats as st
-from functools import reduce
-from operator import itemgetter, attrgetter
 
 
 class Interval(object):
@@ -59,9 +57,8 @@ class GTFparser(object):
                         self.gene.setdefault('start', []).append(start)
                         self.gene.setdefault('end', []).append(end)
 
-                    if line[2] in ['exon','UTR']:
+                    if line[2] in ['exon', 'UTR']:
                         exonStart, exonEnd = int(line[3]) - 1, int(line[4])
-                        chr, strand = line[0], line[6]
                         geneName = re.findall('gene_name "(.*?)";', i)[0]
                         transcript_id = re.findall('transcript_id "(.*?)"; ', i)[0]
                         self.transcript.setdefault(geneName, {}).setdefault(transcript_id, []).append(
@@ -72,7 +69,7 @@ class GTFparser(object):
     def query(self, chr, start, end, inside):
         if inside:
             return self.gene.loc[
-                ((self.gene['chr'] == chr) & (self.gene['start'] <= start) & (self.gene['end'] >= end)) ,]
+                ((self.gene['chr'] == chr) & (self.gene['start'] <= start) & (self.gene['end'] >= end)), ]
         else:
             return self.gene.loc[
                 ( (self.gene['chr'] == chr) & (self.gene['start'] <= start) & (
@@ -98,13 +95,12 @@ class GTFparser(object):
                     anno_tmp = [g, sorted(circExon, key=lambda x: x[0])]
                     anno.append(anno_tmp)
         if geneList != []:
-
             if anno == []:
-                final_anno = [geneList[0], [[circstart, circend]], gquery.loc[gquery['gene_name']==geneList[0],'gene_strand'].iloc[0], 'intronic']
+                final_anno = [geneList[0], [[circstart, circend]], gquery.loc[gquery['gene_name'] == geneList[0],'gene_strand'].iloc[0], 'intronic']
             else:
                 for i in sorted(anno, key=lambda x: len(x[1]), reverse=True):
                     if i[-1][0][0] == circstart and i[-1][-1][1] == circend:
-                        final_anno = i + [gquery.loc[gquery['gene_name']==i[0],'gene_strand'].iloc[0]] + ['exonic']
+                        final_anno = i + [gquery.loc[gquery['gene_name'] == i[0],'gene_strand'].iloc[0]] + ['exonic']
                         break
                 if final_anno == []:
                     final_anno = sorted(anno, key=lambda x: len(x[1]), reverse=True)[0] + [gquery.loc[gquery['gene_name']==sorted(anno, key=lambda x: len(x[1]), reverse=True)[0][0],'gene_strand'].iloc[0]] + ['exonic+intron']
@@ -193,6 +189,7 @@ class circRNA(object):
         self.junction = self.sequence[-length:] + self.sequence[:length]
         return self.junction
 
+
 def reduceList(x, y):
     if not isinstance(x, tuple):
         if x.is_overlap(y):
@@ -204,6 +201,7 @@ def reduceList(x, y):
             return x[:-1] + (x[-1].merge(y),)
         else:
             return x + (y,)
+
 
 def merge(lis):
     dic = {}
@@ -225,6 +223,7 @@ def merge(lis):
                         break
     return dic
 
+
 def featureCount(gtf, ip_bam, s, p, input_bam, out, SE=False):
     if SE:
         cmd = 'featureCounts -a %s -o %s -t exon -g gene_name  -s %s --splitOnly  -T %s %s %s' \
@@ -236,6 +235,7 @@ def featureCount(gtf, ip_bam, s, p, input_bam, out, SE=False):
     os.system(cmd)
     return '%s.count' % out
 
+
 def get_ctest_gene(ip_circ, input_circ, hostgene, host, R=1):
     gene = hostgene
     ip_input_counts = int(ip_circ) + int(input_circ)
@@ -244,8 +244,7 @@ def get_ctest_gene(ip_circ, input_circ, hostgene, host, R=1):
             rate = R * int(host.loc[gene, 'ip']) / (int(host.loc[gene, 'input']) + R * int(host.loc[gene, 'ip']))
             ip_input_counts = int(ip_circ) + int(input_circ)
         else:
-            rate = R * int(host.loc[:, 'ip'].sum()) / (
-            int(host.loc[:, 'input'].sum()) + R * int(host.loc[:, 'ip'].sum()))
+            rate = R * int(host.loc[:, 'ip'].sum()) / (int(host.loc[:, 'input'].sum()) + R * int(host.loc[:, 'ip'].sum()))
             ip_input_counts = int(ip_circ) + int(input_circ)
     except ZeroDivisionError:
         return 'NA'
@@ -295,7 +294,7 @@ def label(x, p=0.05, ratio=2):
         return 'non-enriched'
 
 
-def main(ip_circ, input_circ, gtf, ip_bam, input_bam, out, genomeFasta, s=2, p=30, SE=None):
+def main(ip_circ, input_circ, gtf, ip_bam, input_bam, out, genomeFasta, s=2, p=30, SE=None, R=1, ratio=2, pvalue=0.05):
     total = pd.concat([getCircbed(ip_circ), getCircbed(input_circ)], axis=1)
     total = total.fillna(0)
     genes = GTFparser(gtf)
@@ -308,36 +307,35 @@ def main(ip_circ, input_circ, gtf, ip_bam, input_bam, out, genomeFasta, s=2, p=3
     circRNAs = merge(circRNAs)
     host = read_feature(featureCount(gtf, ip_bam, s, p, input_bam, out, SE))
     o = open(out, 'w')
-    o2 = open('%s.junction.fa' % out, 'w')
+    #o2 = open('%s.junction.fa' % out, 'w')
     res = []
     genome = pysam.FastaFile(genomeFasta)
     for k in circRNAs.keys():
-        circRNAs[k].annotation(genes,False)
+        circRNAs[k].annotation(genes, False)
         circRNAs[k].getSequence(genome)
         circRNAs[k].getJunction(50)
-        p1 = get_ctest_gene(circRNAs[k].counts[0], circRNAs[k].counts[1], circRNAs[k].anno[0], host, R=1)
-        p2 = get_ctest_genome(circRNAs[k].counts[0], circRNAs[k].counts[1], host, R=1)
+        p1 = get_ctest_gene(circRNAs[k].counts[0], circRNAs[k].counts[1], circRNAs[k].anno[0], host, R)
+        p2 = get_ctest_genome(circRNAs[k].counts[0], circRNAs[k].counts[1], host, R)
         circRNAs[k].pvalue = get_min(p1, p2)
         if circRNAs[k].counts[1] / list(total.sum())[1] > 0:
-            circRNAs[k].ratio = (circRNAs[k].counts[0] * 10 ** 6 / host['ip'].sum()) / (
-            circRNAs[k].counts[1] * 10 ** 6 / host['input'].sum())
+            circRNAs[k].ratio = (circRNAs[k].counts[0] * 10 ** 6 / host['ip'].sum()) / (circRNAs[k].counts[1] * 10 ** 6 / host['input'].sum())
         else:
             circRNAs[k].ratio = np.inf
         circRNAs[k].label = 'non-enriched'
-        if circRNAs[k].ratio >= 2 and circRNAs[k].pvalue <= 0.05:
+        if circRNAs[k].ratio >= ratio and circRNAs[k].pvalue <= pvalue:
             circRNAs[k].label = 'enriched'
-        o.write('\t'.join([k, circRNAs[k].anno[0], str(int(circRNAs[k].counts[0])), \
+        o.write('\t'.join([k, circRNAs[k].anno[0], str(int(circRNAs[k].counts[0])),
                            str(int(circRNAs[k].counts[1])), str(circRNAs[k].counts[0] * 10 ** 6 / host['ip'].sum()),
                            str(circRNAs[k].counts[1] * 10 ** 6 / host['input'].sum()), str(circRNAs[k].ratio),
                            str(circRNAs[k].pvalue), circRNAs[k].label]) + '\n')
         res.append(
-            [k, circRNAs[k].anno[0], str(int(circRNAs[k].counts[0])), \
+            [k, circRNAs[k].anno[0], str(int(circRNAs[k].counts[0])),
              int(circRNAs[k].counts[1]), circRNAs[k].counts[0] * 10 ** 6 / host['ip'].sum(),
              circRNAs[k].counts[1] * 10 ** 6 / host['input'].sum(), circRNAs[k].ratio,
              circRNAs[k].pvalue, circRNAs[k].label]
         )
         o2.write('>%s\n' % k)
-        o2.write('%s\n' % circRNAs[k].junction)
+        #o2.write('%s\n' % circRNAs[k].junction)
 
         with open(out + '.html', 'w') as f, open(
                 os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template.html')) as tp:
@@ -347,6 +345,3 @@ def main(ip_circ, input_circ, gtf, ip_bam, input_bam, out, genomeFasta, s=2, p=3
                 f.write(i)
 
     o.close()
-
-
-#main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7])
