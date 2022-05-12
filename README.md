@@ -13,7 +13,7 @@ circRIP: An accurate tool for identifying circRNA-RBP interaction
     bowtie2 (2.4.2)
 
 ## 2. Identify circRNA from IP/Input
-###     2.1 Identify circRNA using built-in methon in circRIP:
+###     2.1 Identify circRNA using built-in method in circRIP:
 
         circRIP identify circRNA by parsing STAR mapping results and re-mapping the unmapped reads to known circRNA back-splice junctions(BSJs)
     
